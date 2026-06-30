@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -22,7 +23,11 @@ class AnnouncementComposerScreen extends StatefulWidget {
 class _AnnouncementComposerScreenState extends State<AnnouncementComposerScreen> {
   late final _bodyController = TextEditingController(text: widget.existingPost?.body ?? '');
   late PickedAttachment? _attachment = widget.existingPost?.attachmentPath != null
-      ? PickedAttachment(path: widget.existingPost!.attachmentPath!, name: widget.existingPost!.attachmentName ?? '')
+      ? PickedAttachment(
+          path: widget.existingPost!.attachmentPath!,
+          name: widget.existingPost!.attachmentName ?? '',
+          bytes: widget.existingPost!.attachmentBytes,
+        )
       : null;
   late AnnouncementAttachmentType _attachmentType = widget.existingPost?.attachmentType ?? AnnouncementAttachmentType.none;
 
@@ -66,6 +71,7 @@ class _AnnouncementComposerScreenState extends State<AnnouncementComposerScreen>
       attachmentType: _attachmentType,
       attachmentPath: _attachment?.path,
       attachmentName: _attachment?.name,
+      attachmentBytes: _attachment?.bytes,
     ));
     Navigator.of(context).pop();
   }
@@ -201,7 +207,9 @@ class _AttachmentPreview extends StatelessWidget {
     if (type == AnnouncementAttachmentType.photo) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.file(File(attachment.path), height: 180, width: double.infinity, fit: BoxFit.cover),
+        child: kIsWeb && attachment.bytes != null
+            ? Image.memory(attachment.bytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
+            : Image.file(File(attachment.path), height: 180, width: double.infinity, fit: BoxFit.cover),
       );
     }
     final icon = type == AnnouncementAttachmentType.video ? PhosphorIconsFill.playCircle : PhosphorIconsFill.fileText;

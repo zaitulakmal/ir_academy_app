@@ -1,12 +1,20 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/theme/app_colors.dart';
+
+class DrawingResult {
+  final String? path;
+  final Uint8List bytes;
+
+  const DrawingResult({this.path, required this.bytes});
+}
 
 class _Stroke {
   final List<Offset> points;
@@ -42,12 +50,18 @@ class _DrawingPainter extends CustomPainter {
   bool shouldRepaint(covariant _DrawingPainter oldDelegate) => true;
 }
 
-/// Returns the saved PNG file path, or null if the user cancelled without drawing.
+/// Returns a [DrawingResult] (always has bytes; path is mobile-only), or null if cancelled.
 class DrawingCanvasScreen extends StatefulWidget {
   final String? backgroundImagePath;
+  final Uint8List? backgroundImageBytes;
   final String title;
 
-  const DrawingCanvasScreen({super.key, this.backgroundImagePath, this.title = 'Drawing'});
+  const DrawingCanvasScreen({
+    super.key,
+    this.backgroundImagePath,
+    this.backgroundImageBytes,
+    this.title = 'Drawing',
+  });
 
   @override
   State<DrawingCanvasScreen> createState() => _DrawingCanvasScreenState();
@@ -60,6 +74,8 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
 
   static const _palette = [AppColors.accent, AppColors.primary, Colors.black, AppColors.success, AppColors.warning];
 
+  bool get _hasBackground => widget.backgroundImagePath != null || widget.backgroundImageBytes != null;
+
   Future<void> _saveAndExit() async {
     if (_strokes.isEmpty) {
       Navigator.of(context).pop();
@@ -70,11 +86,16 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
     final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
     final bytes = byteData!.buffer.asUint8List();
 
+    if (kIsWeb) {
+      if (mounted) Navigator.of(context).pop(DrawingResult(bytes: bytes));
+      return;
+    }
+
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/drawing_${DateTime.now().microsecondsSinceEpoch}.png');
     await file.writeAsBytes(bytes);
 
-    if (mounted) Navigator.of(context).pop(file.path);
+    if (mounted) Navigator.of(context).pop(DrawingResult(path: file.path, bytes: bytes));
   }
 
   @override
@@ -101,13 +122,16 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (widget.backgroundImagePath != null) Image.file(File(widget.backgroundImagePath!), fit: BoxFit.contain),
+                  if (widget.backgroundImageBytes != null)
+                    Image.memory(widget.backgroundImageBytes!, fit: BoxFit.contain)
+                  else if (widget.backgroundImagePath != null)
+                    Image.file(File(widget.backgroundImagePath!), fit: BoxFit.contain),
                   GestureDetector(
                     onPanStart: (details) =>
                         setState(() => _strokes.add(_Stroke(_color)..points.add(details.localPosition))),
                     onPanUpdate: (details) => setState(() => _strokes.last.points.add(details.localPosition)),
                     child: CustomPaint(
-                      painter: _DrawingPainter(_strokes, paintWhiteBackground: widget.backgroundImagePath == null),
+                      painter: _DrawingPainter(_strokes, paintWhiteBackground: !_hasBackground),
                       size: Size.infinite,
                     ),
                   ),

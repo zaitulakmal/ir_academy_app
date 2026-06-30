@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -87,7 +88,9 @@ class _StoryPostDetailScreenState extends State<StoryPostDetailScreen> {
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(File(post.attachmentPath!), height: 220, width: double.infinity, fit: BoxFit.cover),
+                    child: kIsWeb && post.attachmentBytes != null
+                        ? Image.memory(post.attachmentBytes!, height: 220, width: double.infinity, fit: BoxFit.cover)
+                        : Image.file(File(post.attachmentPath!), height: 220, width: double.infinity, fit: BoxFit.cover),
                   ),
                 ] else if (post.attachmentType == StoryAttachmentType.video) ...[
                   const SizedBox(height: 10),

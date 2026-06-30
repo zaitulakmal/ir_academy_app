@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class ChatThread {
   final String title;
   final String subtitle;
@@ -67,6 +69,7 @@ class AnnouncementPost {
   final AnnouncementAttachmentType attachmentType;
   final String? attachmentPath;
   final String? attachmentName;
+  final Uint8List? attachmentBytes;
 
   const AnnouncementPost({
     required this.body,
@@ -75,5 +78,6 @@ class AnnouncementPost {
     this.attachmentType = AnnouncementAttachmentType.none,
     this.attachmentPath,
     this.attachmentName,
+    this.attachmentBytes,
   });
 }

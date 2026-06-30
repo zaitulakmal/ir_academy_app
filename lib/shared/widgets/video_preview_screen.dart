@@ -1,23 +1,26 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
 class VideoPreviewScreen extends StatefulWidget {
   final String path;
+  final Uint8List? bytes;
 
-  const VideoPreviewScreen({super.key, required this.path});
+  const VideoPreviewScreen({super.key, required this.path, this.bytes});
 
   @override
   State<VideoPreviewScreen> createState() => _VideoPreviewScreenState();
 }
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
-  late final VideoPlayerController _controller = VideoPlayerController.file(File(widget.path))
-    ..initialize().then((_) {
-      setState(() {});
-      _controller.play();
-    });
+  late final VideoPlayerController _controller =
+      (kIsWeb ? VideoPlayerController.networkUrl(Uri.parse(widget.path)) : VideoPlayerController.file(File(widget.path)))
+        ..initialize().then((_) {
+          setState(() {});
+          _controller.play();
+        });
 
   @override
   void dispose() {

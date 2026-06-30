@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -27,21 +29,29 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
   late final TextEditingController _feedbackController = TextEditingController(text: widget.submission.feedback ?? '');
   late final List<String?> _markupPaths =
       widget.submission.attachments.map((a) => a.markupPath).toList();
+  late final List<Uint8List?> _markupBytes =
+      widget.submission.attachments.map((a) => a.markupBytes).toList();
 
   bool get _canMarkup =>
       widget.activity.responseType == ResponseType.photo || widget.activity.responseType == ResponseType.drawing;
 
   Future<void> _openMarkup(int index) async {
     final attachment = widget.submission.attachments[index];
-    final path = await Navigator.of(context).push<String>(
+    final result = await Navigator.of(context).push<DrawingResult>(
       MaterialPageRoute(
         builder: (_) => DrawingCanvasScreen(
           title: 'Conteng Submission',
           backgroundImagePath: _markupPaths[index] ?? attachment.path,
+          backgroundImageBytes: _markupBytes[index] ?? attachment.bytes,
         ),
       ),
     );
-    if (path != null) setState(() => _markupPaths[index] = path);
+    if (result != null) {
+      setState(() {
+        _markupPaths[index] = result.path;
+        _markupBytes[index] = result.bytes;
+      });
+    }
   }
 
   void _save() {
@@ -52,6 +62,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     submission.feedback = _feedbackController.text.trim().isEmpty ? null : _feedbackController.text.trim();
     for (var i = 0; i < submission.attachments.length; i++) {
       submission.attachments[i].markupPath = _markupPaths[i];
+      submission.attachments[i].markupBytes = _markupBytes[i];
     }
     widget.onGraded(submission);
     Navigator.of(context).pop();
@@ -65,6 +76,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
     submission.feedback = null;
     for (final attachment in submission.attachments) {
       attachment.markupPath = null;
+      attachment.markupBytes = null;
     }
     widget.onGraded(submission);
     Navigator.of(context).pop();
@@ -108,6 +120,7 @@ class _GradeSubmissionScreenState extends State<GradeSubmissionScreen> {
                       responseType: widget.activity.responseType,
                       path: _markupPaths[index] ?? attachment.path,
                       name: attachment.name,
+                      bytes: _markupBytes[index] ?? attachment.bytes,
                     ),
                     if (_canMarkup) ...[
                       const SizedBox(height: 8),

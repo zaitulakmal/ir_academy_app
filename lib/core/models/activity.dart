@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 enum ResponseType { text, video, photo, drawing, worksheet }
 
 class Activity {
@@ -11,6 +13,7 @@ class Activity {
   final DateTime createdAt;
   final String? attachmentPath;
   final String? attachmentName;
+  final Uint8List? attachmentBytes;
 
   const Activity({
     required this.id,
@@ -23,6 +26,7 @@ class Activity {
     required this.createdAt,
     this.attachmentPath,
     this.attachmentName,
+    this.attachmentBytes,
   });
 }
 
@@ -30,8 +34,16 @@ class SubmissionAttachment {
   final String path;
   final String name;
   String? markupPath;
+  final Uint8List? bytes;
+  Uint8List? markupBytes;
 
-  SubmissionAttachment({required this.path, required this.name, this.markupPath});
+  SubmissionAttachment({
+    required this.path,
+    required this.name,
+    this.markupPath,
+    this.bytes,
+    this.markupBytes,
+  });
 }
 
 class Submission {

@@ -50,7 +50,11 @@ Future<void> showCreateActivitySheet({
   var wholeClass = existingActivity?.wholeClass ?? true;
   final selectedLearners = <String>{...(existingActivity?.assignedLearners ?? const [])};
   PickedAttachment? attachment = existingActivity?.attachmentPath != null
-      ? PickedAttachment(path: existingActivity!.attachmentPath!, name: existingActivity.attachmentName ?? '')
+      ? PickedAttachment(
+          path: existingActivity!.attachmentPath!,
+          name: existingActivity.attachmentName ?? '',
+          bytes: existingActivity.attachmentBytes,
+        )
       : null;
 
   return showModalBottomSheet(
@@ -216,6 +220,7 @@ Future<void> showCreateActivitySheet({
                         createdAt: existingActivity?.createdAt ?? DateTime.now(),
                         attachmentPath: attachment?.path,
                         attachmentName: attachment?.name,
+                        attachmentBytes: attachment?.bytes,
                       ),
                     );
                     Navigator.of(context).pop();

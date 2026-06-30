@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 enum StoryAttachmentType { none, link, file, photo, video }
 
 class StoryPost {
@@ -11,6 +13,7 @@ class StoryPost {
   final String? attachmentPath;
   final String? attachmentName;
   final String? attachmentSizeLabel;
+  final Uint8List? attachmentBytes;
   final bool wholeClass;
   final List<String> assignedLearners;
   int likeCount;
@@ -28,6 +31,7 @@ class StoryPost {
     this.attachmentPath,
     this.attachmentName,
     this.attachmentSizeLabel,
+    this.attachmentBytes,
     this.wholeClass = true,
     this.assignedLearners = const [],
     this.likeCount = 0,

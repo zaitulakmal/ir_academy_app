@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -63,7 +64,9 @@ class StudentSchoolAnnouncementScreen extends StatelessWidget {
     if (post.attachmentType == AnnouncementAttachmentType.photo) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
+        child: kIsWeb && post.attachmentBytes != null
+            ? Image.memory(post.attachmentBytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
+            : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
       );
     }
     final icon =
