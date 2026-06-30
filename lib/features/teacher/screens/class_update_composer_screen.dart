@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
@@ -25,6 +26,7 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
       ? PickedAttachment(
           path: widget.existingPost!.attachmentPath ?? widget.existingPost!.attachmentUrl!,
           name: widget.existingPost!.attachmentName ?? '',
+          bytes: widget.existingPost!.attachmentBytes,
         )
       : null;
   late StoryAttachmentType _attachmentType = widget.existingPost?.attachmentType ?? StoryAttachmentType.none;
@@ -154,6 +156,7 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
       attachmentUrl: widget.existingPost?.attachmentUrl,
       attachmentName: _attachment?.name,
       attachmentSizeLabel: widget.existingPost?.attachmentSizeLabel,
+      attachmentBytes: _attachment?.bytes,
       wholeClass: _wholeClass,
       assignedLearners: _wholeClass ? const [] : _selectedLearners.toList(),
       likeCount: widget.existingPost?.likeCount ?? 0,
@@ -319,7 +322,9 @@ class _AttachmentPreview extends StatelessWidget {
     if (type == StoryAttachmentType.photo) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.file(File(attachment.path), height: 180, width: double.infinity, fit: BoxFit.cover),
+        child: kIsWeb && attachment.bytes != null
+            ? Image.memory(attachment.bytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
+            : Image.file(File(attachment.path), height: 180, width: double.infinity, fit: BoxFit.cover),
       );
     }
     final icon = type == StoryAttachmentType.video ? PhosphorIconsFill.playCircle : PhosphorIconsFill.fileText;

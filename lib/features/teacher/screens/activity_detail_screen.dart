@@ -99,6 +99,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                       responseType: ResponseType.worksheet,
                       path: activity.attachmentPath!,
                       name: activity.attachmentName ?? 'Attachment',
+                      bytes: activity.attachmentBytes,
                     ),
                   ],
                 ],

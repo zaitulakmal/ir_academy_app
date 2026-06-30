@@ -27,7 +27,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
   late final TextEditingController _textController =
       TextEditingController(text: widget.submission.textResponse ?? '');
   late final List<PickedAttachment> _attachments = widget.submission.attachments
-      .map((a) => PickedAttachment(path: a.path, name: a.name))
+      .map((a) => PickedAttachment(path: a.path, name: a.name, bytes: a.bytes))
       .toList();
 
   Future<void> _addAttachment() async {
@@ -59,7 +59,8 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
     if (activity.responseType == ResponseType.text) {
       submission.textResponse = _textController.text.trim();
     } else {
-      submission.attachments = _attachments.map((a) => SubmissionAttachment(path: a.path, name: a.name)).toList();
+      submission.attachments =
+          _attachments.map((a) => SubmissionAttachment(path: a.path, name: a.name, bytes: a.bytes)).toList();
     }
     widget.onSubmitted(submission);
     Navigator.of(context).pop();
@@ -101,6 +102,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
                       responseType: ResponseType.worksheet,
                       path: activity.attachmentPath!,
                       name: activity.attachmentName ?? 'Attachment',
+                      bytes: activity.attachmentBytes,
                     ),
                   ],
                 ],
@@ -136,6 +138,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
                       responseType: activity.responseType,
                       path: a.markupPath ?? a.path,
                       name: a.name,
+                      bytes: a.markupBytes ?? a.bytes,
                     ),
                   )),
           ] else if (activity.responseType == ResponseType.text) ...[
@@ -154,6 +157,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
                         responseType: activity.responseType,
                         path: entry.value.path,
                         name: entry.value.name,
+                        bytes: entry.value.bytes,
                       ),
                       Positioned(
                         top: 4,

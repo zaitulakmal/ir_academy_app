@@ -109,35 +109,64 @@ String _formatTime(DateTime date) {
   return '$h:${date.minute.toString().padLeft(2, '0')} $period';
 }
 
-class ChatThreadScreen extends StatelessWidget {
+class _ThreadMessage {
+  final String text;
+  final bool isMine;
+
+  const _ThreadMessage(this.text, this.isMine);
+}
+
+class ChatThreadScreen extends StatefulWidget {
   final ChatThread thread;
 
   const ChatThreadScreen({super.key, required this.thread});
 
   @override
+  State<ChatThreadScreen> createState() => _ChatThreadScreenState();
+}
+
+class _ChatThreadScreenState extends State<ChatThreadScreen> {
+  late final List<_ThreadMessage> _messages = [_ThreadMessage(widget.thread.lastMessage, false)];
+  final _messageController = TextEditingController();
+
+  void _send() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+    setState(() {
+      _messages.add(_ThreadMessage(text, true));
+      _messageController.clear();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(thread.title)),
+      appBar: AppBar(title: Text(widget.thread.title)),
       body: Column(
         children: [
           Expanded(
-            child: ListView(
+            child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                return Align(
+                  alignment: message.isMine ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
                     constraints: const BoxConstraints(maxWidth: 260),
                     decoration: BoxDecoration(
-                      color: AppColors.borderLight,
+                      color: message.isMine ? AppColors.primary : AppColors.borderLight,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(thread.lastMessage),
+                    child: Text(
+                      message.text,
+                      style: TextStyle(color: message.isMine ? Colors.white : AppColors.textPrimary),
+                    ),
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           Container(
@@ -151,6 +180,7 @@ class ChatThreadScreen extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextField(
+                      controller: _messageController,
                       decoration: InputDecoration(
                         hintText: 'Type a message...',
                         filled: true,
@@ -161,6 +191,7 @@ class ChatThreadScreen extends StatelessWidget {
                           borderSide: BorderSide.none,
                         ),
                       ),
+                      onSubmitted: (_) => _send(),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -168,7 +199,7 @@ class ChatThreadScreen extends StatelessWidget {
                     backgroundColor: AppColors.accent,
                     child: IconButton(
                       icon: const Icon(PhosphorIconsFill.paperPlaneTilt, color: Colors.white, size: 18),
-                      onPressed: () {},
+                      onPressed: _send,
                     ),
                   ),
                 ],
