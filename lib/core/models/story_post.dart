@@ -1,4 +1,4 @@
-enum StoryAttachmentType { none, link, file }
+enum StoryAttachmentType { none, link, file, photo, video }
 
 class StoryPost {
   final String id;
@@ -8,8 +8,11 @@ class StoryPost {
   final String body;
   final StoryAttachmentType attachmentType;
   final String? attachmentUrl;
+  final String? attachmentPath;
   final String? attachmentName;
   final String? attachmentSizeLabel;
+  final bool wholeClass;
+  final List<String> assignedLearners;
   int likeCount;
   bool likedByMe;
   final List<String> comments;
@@ -22,8 +25,11 @@ class StoryPost {
     required this.body,
     this.attachmentType = StoryAttachmentType.none,
     this.attachmentUrl,
+    this.attachmentPath,
     this.attachmentName,
     this.attachmentSizeLabel,
+    this.wholeClass = true,
+    this.assignedLearners = const [],
     this.likeCount = 0,
     this.likedByMe = false,
     List<String>? comments,

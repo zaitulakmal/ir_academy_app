@@ -59,6 +59,27 @@ Future<PickedAttachment?> pickWorksheet() async {
   return PickedAttachment(path: file.path!, name: file.name);
 }
 
+Future<List<PickedAttachment>> pickWorksheets() async {
+  final result = await FilePicker.platform.pickFiles(type: FileType.any, allowMultiple: true);
+  if (result == null) return [];
+  return result.files
+      .where((f) => f.path != null)
+      .map((f) => PickedAttachment(path: f.path!, name: f.name))
+      .toList();
+}
+
+Future<List<PickedAttachment>> pickPhotos(BuildContext context) async {
+  final source = await _chooseSource(context, isVideo: false);
+  if (source == null) return [];
+  if (source == ImageSource.camera) {
+    final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 80);
+    if (file == null) return [];
+    return [PickedAttachment(path: file.path, name: file.name)];
+  }
+  final files = await ImagePicker().pickMultiImage(imageQuality: 80);
+  return files.map((f) => PickedAttachment(path: f.path, name: f.name)).toList();
+}
+
 Future<PickedAttachment?> pickDrawing(BuildContext context) async {
   final path = await Navigator.of(context).push<String>(
     MaterialPageRoute(builder: (_) => const DrawingCanvasScreen()),

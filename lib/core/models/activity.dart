@@ -26,22 +26,36 @@ class Activity {
   });
 }
 
+class SubmissionAttachment {
+  final String path;
+  final String name;
+  String? markupPath;
+
+  SubmissionAttachment({required this.path, required this.name, this.markupPath});
+}
+
 class Submission {
   final String activityId;
   final String learnerName;
   bool submitted;
   String? textResponse;
-  String? attachmentPath;
-  String? attachmentName;
+  List<SubmissionAttachment> attachments;
   DateTime? submittedAt;
+  bool graded;
+  String? grade;
+  String? feedback;
+  DateTime? gradedAt;
 
   Submission({
     required this.activityId,
     required this.learnerName,
     this.submitted = false,
     this.textResponse,
-    this.attachmentPath,
-    this.attachmentName,
+    List<SubmissionAttachment>? attachments,
     this.submittedAt,
-  });
+    this.graded = false,
+    this.grade,
+    this.feedback,
+    this.gradedAt,
+  }) : attachments = attachments ?? [];
 }

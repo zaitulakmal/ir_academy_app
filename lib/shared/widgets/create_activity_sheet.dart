@@ -40,13 +40,18 @@ Future<void> showCreateActivitySheet({
   required List<String> learnerNames,
   required void Function(Activity activity) onCreate,
   String? defaultSubject,
+  Activity? existingActivity,
+  VoidCallback? onDelete,
 }) {
-  final titleController = TextEditingController();
-  final instructionsController = TextEditingController();
-  var responseType = ResponseType.text;
-  var wholeClass = true;
-  final selectedLearners = <String>{};
-  PickedAttachment? attachment;
+  final isEditing = existingActivity != null;
+  final titleController = TextEditingController(text: existingActivity?.title ?? '');
+  final instructionsController = TextEditingController(text: existingActivity?.instructions ?? '');
+  var responseType = existingActivity?.responseType ?? ResponseType.text;
+  var wholeClass = existingActivity?.wholeClass ?? true;
+  final selectedLearners = <String>{...(existingActivity?.assignedLearners ?? const [])};
+  PickedAttachment? attachment = existingActivity?.attachmentPath != null
+      ? PickedAttachment(path: existingActivity!.attachmentPath!, name: existingActivity.attachmentName ?? '')
+      : null;
 
   return showModalBottomSheet(
     context: context,
@@ -68,10 +73,23 @@ Future<void> showCreateActivitySheet({
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Create activity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  IconButton(
-                    icon: const Icon(PhosphorIconsBold.x),
-                    onPressed: () => Navigator.of(context).pop(),
+                  Text(isEditing ? 'Edit activity' : 'Create activity',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Row(
+                    children: [
+                      if (isEditing)
+                        IconButton(
+                          icon: const Icon(PhosphorIconsRegular.trash, color: AppColors.danger),
+                          onPressed: () {
+                            onDelete?.call();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      IconButton(
+                        icon: const Icon(PhosphorIconsBold.x),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -188,21 +206,21 @@ Future<void> showCreateActivitySheet({
                     if (titleController.text.trim().isEmpty) return;
                     onCreate(
                       Activity(
-                        id: DateTime.now().microsecondsSinceEpoch.toString(),
+                        id: existingActivity?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
                         title: titleController.text.trim(),
                         instructions: instructionsController.text.trim(),
                         responseType: responseType,
                         wholeClass: wholeClass,
                         assignedLearners: wholeClass ? const [] : selectedLearners.toList(),
-                        subject: defaultSubject,
-                        createdAt: DateTime.now(),
+                        subject: existingActivity?.subject ?? defaultSubject,
+                        createdAt: existingActivity?.createdAt ?? DateTime.now(),
                         attachmentPath: attachment?.path,
                         attachmentName: attachment?.name,
                       ),
                     );
                     Navigator.of(context).pop();
                   },
-                  child: const Text('Assign to class'),
+                  child: Text(isEditing ? 'Save changes' : 'Assign to class'),
                 ),
               ),
             ],

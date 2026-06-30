@@ -8,6 +8,11 @@ class StudentClassChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChatListScreen(title: 'Class Chat', threads: MockData.studentChats);
+    return ChatListScreen(
+      title: 'Class Chat',
+      threads: MockData.studentChats,
+      groups: MockData.chatGroups,
+      currentUserName: MockData.studentName,
+    );
   }
 }

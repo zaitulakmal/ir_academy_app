@@ -27,7 +27,7 @@ class TeacherReportCardScreen extends StatelessWidget {
               subtitle: Text(l.form),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const ReportCardScreen()),
+                MaterialPageRoute(builder: (_) => ReportCardScreen(learnerName: l.name)),
               ),
             ),
           );
