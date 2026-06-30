@@ -17,12 +17,15 @@ class _Stroke {
 
 class _DrawingPainter extends CustomPainter {
   final List<_Stroke> strokes;
+  final bool paintWhiteBackground;
 
-  _DrawingPainter(this.strokes);
+  _DrawingPainter(this.strokes, {this.paintWhiteBackground = true});
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
+    if (paintWhiteBackground) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), Paint()..color = Colors.white);
+    }
     for (final stroke in strokes) {
       final paint = Paint()
         ..color = stroke.color
@@ -41,7 +44,10 @@ class _DrawingPainter extends CustomPainter {
 
 /// Returns the saved PNG file path, or null if the user cancelled without drawing.
 class DrawingCanvasScreen extends StatefulWidget {
-  const DrawingCanvasScreen({super.key});
+  final String? backgroundImagePath;
+  final String title;
+
+  const DrawingCanvasScreen({super.key, this.backgroundImagePath, this.title = 'Drawing'});
 
   @override
   State<DrawingCanvasScreen> createState() => _DrawingCanvasScreenState();
@@ -50,9 +56,9 @@ class DrawingCanvasScreen extends StatefulWidget {
 class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
   final _repaintKey = GlobalKey();
   final List<_Stroke> _strokes = [];
-  Color _color = AppColors.primary;
+  Color _color = AppColors.accent;
 
-  static const _palette = [AppColors.primary, AppColors.accent, Colors.black, AppColors.success, AppColors.warning];
+  static const _palette = [AppColors.accent, AppColors.primary, Colors.black, AppColors.success, AppColors.warning];
 
   Future<void> _saveAndExit() async {
     if (_strokes.isEmpty) {
@@ -75,7 +81,7 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Drawing'),
+        title: Text(widget.title),
         actions: [
           IconButton(
             icon: const Icon(PhosphorIconsRegular.trash),
@@ -92,13 +98,20 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
           Expanded(
             child: RepaintBoundary(
               key: _repaintKey,
-              child: GestureDetector(
-                onPanStart: (details) => setState(() => _strokes.add(_Stroke(_color)..points.add(details.localPosition))),
-                onPanUpdate: (details) => setState(() => _strokes.last.points.add(details.localPosition)),
-                child: CustomPaint(
-                  painter: _DrawingPainter(_strokes),
-                  size: Size.infinite,
-                ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (widget.backgroundImagePath != null) Image.file(File(widget.backgroundImagePath!), fit: BoxFit.contain),
+                  GestureDetector(
+                    onPanStart: (details) =>
+                        setState(() => _strokes.add(_Stroke(_color)..points.add(details.localPosition))),
+                    onPanUpdate: (details) => setState(() => _strokes.last.points.add(details.localPosition)),
+                    child: CustomPaint(
+                      painter: _DrawingPainter(_strokes, paintWhiteBackground: widget.backgroundImagePath == null),
+                      size: Size.infinite,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

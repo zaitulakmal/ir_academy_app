@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -81,7 +83,27 @@ class _StoryPostDetailScreenState extends State<StoryPostDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(post.body),
-                if (post.attachmentType == StoryAttachmentType.link) ...[
+                if (post.attachmentType == StoryAttachmentType.photo) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(File(post.attachmentPath!), height: 220, width: double.infinity, fit: BoxFit.cover),
+                  ),
+                ] else if (post.attachmentType == StoryAttachmentType.video) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(12)),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                            backgroundColor: AppColors.primary, child: Icon(PhosphorIconsFill.playCircle, color: Colors.white, size: 18)),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text(post.attachmentName ?? 'Video', overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                ] else if (post.attachmentType == StoryAttachmentType.link) ...[
                   const SizedBox(height: 10),
                   GestureDetector(
                     onTap: () => _openLink(post.attachmentUrl!),

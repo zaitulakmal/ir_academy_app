@@ -14,7 +14,9 @@ class ClassUpdateScreen extends StatefulWidget {
 }
 
 class _ClassUpdateScreenState extends State<ClassUpdateScreen> {
-  late final List<StoryPost> _posts = [...MockData.storyPosts];
+  late final List<StoryPost> _posts = MockData.storyPosts
+      .where((p) => p.wholeClass || p.assignedLearners.contains(MockData.studentName))
+      .toList();
 
   @override
   Widget build(BuildContext context) {

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,8 +24,10 @@ Future<void> _openLink(String url) async {
 class StoryPostCard extends StatefulWidget {
   final StoryPost post;
   final int colorIndex;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
-  const StoryPostCard({super.key, required this.post, this.colorIndex = 0});
+  const StoryPostCard({super.key, required this.post, this.colorIndex = 0, this.onEdit, this.onDelete});
 
   @override
   State<StoryPostCard> createState() => _StoryPostCardState();
@@ -66,11 +70,40 @@ class _StoryPostCardState extends State<StoryPostCard> {
                     ],
                   ),
                 ),
+                if (widget.onEdit != null || widget.onDelete != null)
+                  PopupMenuButton<String>(
+                    icon: const Icon(PhosphorIconsBold.dotsThreeVertical, size: 18, color: AppColors.textSecondary),
+                    onSelected: (value) => value == 'edit' ? widget.onEdit?.call() : widget.onDelete?.call(),
+                    itemBuilder: (context) => [
+                      if (widget.onEdit != null) const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                      if (widget.onDelete != null) const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                    ],
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             ExpandableText(text: post.body),
-            if (post.attachmentType == StoryAttachmentType.link) ...[
+            if (post.attachmentType == StoryAttachmentType.photo) ...[
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
+              ),
+            ] else if (post.attachmentType == StoryAttachmentType.video) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: AppColors.borderLight, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                        backgroundColor: AppColors.primary, child: Icon(PhosphorIconsFill.playCircle, color: Colors.white, size: 18)),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(post.attachmentName ?? 'Video', overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              ),
+            ] else if (post.attachmentType == StoryAttachmentType.link) ...[
               const SizedBox(height: 10),
               GestureDetector(
                 onTap: () => _openLink(post.attachmentUrl!),

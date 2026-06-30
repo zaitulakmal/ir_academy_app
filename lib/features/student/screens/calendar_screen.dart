@@ -1,46 +1,79 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/calendar_event.dart';
 import '../../../core/theme/app_colors.dart';
-import 'edit_calendar_event_screen.dart';
 
 const _months = [
   'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
 ];
 
-class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+class StudentCalendarScreen extends StatefulWidget {
+  const StudentCalendarScreen({super.key});
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  State<StudentCalendarScreen> createState() => _StudentCalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
-  late final List<CalendarEvent> _events = MockData.calendarEvents;
-
+class _StudentCalendarScreenState extends State<StudentCalendarScreen> {
   String _formatRange(CalendarEvent event) {
     String fmt(DateTime d) => '${d.day} ${_months[d.month - 1].substring(0, 1)}${_months[d.month - 1].substring(1).toLowerCase()}';
     if (!event.isMultiDay) return fmt(event.startDate);
     return '${fmt(event.startDate)}–${fmt(event.endDate)}';
   }
 
-  void _openEditor({CalendarEvent? event}) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => EditCalendarEventScreen(
-          event: event,
-          onSave: (saved) => setState(() {
-            final index = _events.indexWhere((e) => e.id == saved.id);
-            if (index == -1) {
-              _events.add(saved);
-            } else {
-              _events[index] = saved;
-            }
-            _events.sort((a, b) => a.startDate.compareTo(b.startDate));
-          }),
-          onDelete: (toDelete) => setState(() => _events.removeWhere((e) => e.id == toDelete.id)),
+  void _openDetail(CalendarEvent event) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(event.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(_formatRange(event), style: const TextStyle(color: AppColors.textSecondary)),
+                if (event.description.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(event.description),
+                ],
+                if (event.signupSlots.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  const Text('Sign-ups', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  ...event.signupSlots.map((slot) {
+                    final signedUp = slot.signedUpNames.contains(MockData.studentName);
+                    final full = slot.signedUpNames.length >= slot.capacity;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text('${slot.label} (${slot.signedUpNames.length}/${slot.capacity})'),
+                          ),
+                          TextButton(
+                            onPressed: signedUp
+                                ? () => setSheetState(() => slot.signedUpNames.remove(MockData.studentName))
+                                : full
+                                    ? null
+                                    : () => setSheetState(() => slot.signedUpNames.add(MockData.studentName)),
+                            child: Text(signedUp ? 'Cancel' : full ? 'Full' : 'Sign Up'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -48,15 +81,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final sorted = [..._events]..sort((a, b) => a.startDate.compareTo(b.startDate));
+    final sorted = [...MockData.calendarEvents]..sort((a, b) => a.startDate.compareTo(b.startDate));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.accent,
-        onPressed: () => _openEditor(),
-        child: const Icon(PhosphorIconsBold.plus, color: Colors.white),
-      ),
       body: sorted.isEmpty
           ? const Center(child: Text('No events yet.', style: TextStyle(color: AppColors.textSecondary)))
           : ListView(
@@ -67,7 +95,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ...sorted.map((event) => Card(
                       margin: const EdgeInsets.only(bottom: 10),
                       child: ListTile(
-                        onTap: () => _openEditor(event: event),
+                        onTap: () => _openDetail(event),
                         leading: Container(
                           width: 48,
                           padding: const EdgeInsets.symmetric(vertical: 6),
@@ -101,10 +129,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           ),
                         ),
                         isThreeLine: true,
-                        trailing: IconButton(
-                          icon: const Icon(PhosphorIconsRegular.pencilSimple, size: 18),
-                          onPressed: () => _openEditor(event: event),
-                        ),
                       ),
                     )),
               ],

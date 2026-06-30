@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../core/theme/app_colors.dart';
 import 'student/student_shell.dart';
@@ -19,11 +18,8 @@ class RoleSelectScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(PhosphorIconsFill.graduationCap, color: AppColors.primary, size: 64),
+              Image.asset('assets/images/logo.png', width: 280, fit: BoxFit.contain),
               const SizedBox(height: 16),
-              const Text('IR Academy',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.primary)),
-              const SizedBox(height: 4),
               const Text('Choose a role to preview', style: TextStyle(color: AppColors.textSecondary)),
               const SizedBox(height: 40),
               SizedBox(

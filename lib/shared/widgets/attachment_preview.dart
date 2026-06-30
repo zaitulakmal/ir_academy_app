@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/models/activity.dart';
@@ -17,9 +18,12 @@ class AttachmentPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (responseType == ResponseType.photo || responseType == ResponseType.drawing) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.file(File(path), height: 180, width: double.infinity, fit: BoxFit.cover),
+      return InkWell(
+        onTap: () => OpenFilex.open(path),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.file(File(path), height: 180, width: double.infinity, fit: BoxFit.cover),
+        ),
       );
     }
 
@@ -48,18 +52,22 @@ class AttachmentPreview extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.borderLight,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(PhosphorIconsFill.fileText, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(child: Text(name, overflow: TextOverflow.ellipsis)),
-        ],
+    return InkWell(
+      onTap: () => OpenFilex.open(path),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.borderLight,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(PhosphorIconsFill.fileText, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(child: Text(name, overflow: TextOverflow.ellipsis)),
+            const Icon(PhosphorIconsRegular.arrowSquareOut, size: 16, color: AppColors.textSecondary),
+          ],
+        ),
       ),
     );
   }

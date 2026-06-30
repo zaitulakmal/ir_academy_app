@@ -1,6 +1,7 @@
 enum ProgressLevel { excellent, good, needsSupport }
 
 class AprEntry {
+  final String learnerName;
   final DateTime date;
   final String subject;
   final String topicCovered;
@@ -9,8 +10,10 @@ class AprEntry {
   final bool homeworkDone;
   final String observations;
   final String followUpAction;
+  final String? activityId;
 
   const AprEntry({
+    required this.learnerName,
     required this.date,
     required this.subject,
     required this.topicCovered,
@@ -19,5 +22,6 @@ class AprEntry {
     required this.homeworkDone,
     required this.observations,
     required this.followUpAction,
+    this.activityId,
   });
 }

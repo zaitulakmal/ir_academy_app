@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_colors.dart';
 
 class MoreMenuItem {
   final String label;
   final IconData icon;
-  final Widget screen;
+  final Widget? screen;
+  final String? url;
 
-  const MoreMenuItem({required this.label, required this.icon, required this.screen});
+  const MoreMenuItem({required this.label, required this.icon, this.screen, this.url})
+      : assert(screen != null || url != null, 'Provide either screen or url');
 }
 
 class MoreMenuScreen extends StatelessWidget {
@@ -32,9 +35,16 @@ class MoreMenuScreen extends StatelessWidget {
           final item = items[index];
           return InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => item.screen),
-            ),
+            onTap: () async {
+              if (item.url != null) {
+                final uri = Uri.parse(item.url!);
+                if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+              } else {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => item.screen!),
+                );
+              }
+            },
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [

@@ -3,10 +3,12 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/activity.dart';
+import '../../../core/models/apr_entry.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/activity_card.dart';
+import '../../../shared/widgets/apr_entry_card.dart';
 import '../../../shared/widgets/section_header.dart';
-import '../../../shared/widgets/submit_activity_sheet.dart';
+import 'activity_detail_screen.dart';
 
 class HomeworkScreen extends StatefulWidget {
   const HomeworkScreen({super.key});
@@ -19,11 +21,15 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
   late final List<Activity> _myActivities = MockData.activities
       .where((a) => a.wholeClass || a.assignedLearners.contains(MockData.studentName))
       .toList();
-  late final List<Submission> _submissions = [...MockData.submissions];
+  late final List<Submission> _submissions = MockData.submissions;
 
   Submission _submissionFor(String activityId) => _submissions.firstWhere(
         (s) => s.activityId == activityId && s.learnerName == MockData.studentName,
       );
+
+  AprEntry? _linkedEntryFor(String activityId) => MockData.aprEntries
+      .where((e) => e.activityId == activityId && e.learnerName == MockData.studentName)
+      .firstOrNull;
 
   @override
   Widget build(BuildContext context) {
@@ -36,35 +42,74 @@ class _HomeworkScreenState extends State<HomeworkScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           SectionHeader(title: 'Pending (${pending.length})'),
-          ...pending.map((a) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: ActivityCard(
-                  activity: a,
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => _openActivity(a),
-                ),
-              )),
-          const SizedBox(height: 12),
+          if (pending.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('Nothing pending. Great job!', style: TextStyle(color: AppColors.textSecondary)),
+            )
+          else
+            ...pending.map((a) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildCard(a),
+                )),
+          const SizedBox(height: 16),
           SectionHeader(title: 'Completed (${done.length})'),
-          ...done.map((a) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: ActivityCard(
-                  activity: a,
-                  trailing: const Icon(PhosphorIconsFill.checkCircle, color: AppColors.success),
-                  onTap: () => _openActivity(a),
-                ),
-              )),
+          if (done.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text('No homework completed yet.', style: TextStyle(color: AppColors.textSecondary)),
+            )
+          else
+            ...done.map((a) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildCard(a),
+                )),
         ],
       ),
     );
   }
 
-  void _openActivity(Activity activity) {
-    showSubmitActivitySheet(
-      context: context,
+  Widget _buildCard(Activity activity) {
+    final submission = _submissionFor(activity.id);
+    final linkedEntry = _linkedEntryFor(activity.id);
+
+    if (linkedEntry != null) {
+      return AprEntryCard(
+        entry: linkedEntry,
+        linkedSubmission: submission,
+        linkedActivity: activity,
+        onLinkedActivityTap: () => _openActivity(activity),
+        onSubmitTap: () => _openActivity(activity),
+      );
+    }
+
+    return ActivityCard(
       activity: activity,
-      submission: _submissionFor(activity.id),
-      onSubmitted: (_) => setState(() {}),
+      trailing: Icon(
+        submission.graded
+            ? PhosphorIconsFill.sealCheck
+            : submission.submitted
+                ? PhosphorIconsFill.checkCircle
+                : Icons.chevron_right,
+        color: submission.graded
+            ? AppColors.primary
+            : submission.submitted
+                ? AppColors.success
+                : null,
+      ),
+      onTap: () => _openActivity(activity),
+    );
+  }
+
+  void _openActivity(Activity activity) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => StudentActivityDetailScreen(
+          activity: activity,
+          submission: _submissionFor(activity.id),
+          onSubmitted: (_) => setState(() {}),
+        ),
+      ),
     );
   }
 }
