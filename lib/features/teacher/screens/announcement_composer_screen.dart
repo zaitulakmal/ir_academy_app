@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/chat_models.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/attachment_picker.dart';
 
@@ -30,9 +32,10 @@ class _AnnouncementComposerScreenState extends State<AnnouncementComposerScreen>
         )
       : null;
   late AnnouncementAttachmentType _attachmentType = widget.existingPost?.attachmentType ?? AnnouncementAttachmentType.none;
+  bool _isPosting = false;
 
   bool get _isEditing => widget.existingPost != null;
-  bool get _canPost => _bodyController.text.trim().isNotEmpty || _attachment != null;
+  bool get _canPost => (_bodyController.text.trim().isNotEmpty || _attachment != null) && !_isPosting;
 
   Future<void> _pickPhotoVideo({required bool isVideo}) async {
     final PickedAttachment? picked;
@@ -62,18 +65,39 @@ class _AnnouncementComposerScreenState extends State<AnnouncementComposerScreen>
         _attachmentType = AnnouncementAttachmentType.none;
       });
 
-  void _post() {
+  Future<void> _post() async {
     if (!_canPost) return;
+    setState(() => _isPosting = true);
+
+    String? uploadedPath = _attachment?.path;
+    if (_attachment != null) {
+      Uint8List? bytes = _attachment!.bytes;
+      if (bytes == null && !kIsWeb && _attachment!.path.isNotEmpty) {
+        try {
+          bytes = await File(_attachment!.path).readAsBytes();
+        } catch (_) {}
+      }
+      if (bytes != null) {
+        final ts = DateTime.now().microsecondsSinceEpoch;
+        final url = await SupabaseService.uploadAttachment(
+          storagePath: 'announcements/${ts}_${_attachment!.name}',
+          bytes: bytes,
+        );
+        if (url != null) uploadedPath = url;
+      }
+    }
+
     widget.onPost(AnnouncementPost(
+      id: widget.existingPost?.id ?? 'ann${DateTime.now().microsecondsSinceEpoch}',
       body: _bodyController.text.trim(),
       author: widget.existingPost?.author ?? MockData.teacherName,
       timeLabel: widget.existingPost?.timeLabel ?? 'Just now',
       attachmentType: _attachmentType,
-      attachmentPath: _attachment?.path,
+      attachmentPath: uploadedPath,
       attachmentName: _attachment?.name,
       attachmentBytes: _attachment?.bytes,
     ));
-    Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _delete() {
@@ -187,7 +211,9 @@ class _AnnouncementComposerScreenState extends State<AnnouncementComposerScreen>
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _canPost ? _post : null,
-              child: Text(_isEditing ? 'Update' : 'Post to entire School'),
+              child: _isPosting
+                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(_isEditing ? 'Update' : 'Post to entire School'),
             ),
           ),
         ],

@@ -35,6 +35,7 @@ IconData responseTypeIcon(ResponseType type) {
   }
 }
 
+
 Future<void> showCreateActivitySheet({
   required BuildContext context,
   required List<String> learnerNames,
@@ -46,6 +47,7 @@ Future<void> showCreateActivitySheet({
   final isEditing = existingActivity != null;
   final titleController = TextEditingController(text: existingActivity?.title ?? '');
   final instructionsController = TextEditingController(text: existingActivity?.instructions ?? '');
+  final studentSearchController = TextEditingController();
   var responseType = existingActivity?.responseType ?? ResponseType.text;
   var wholeClass = existingActivity?.wholeClass ?? true;
   final selectedLearners = <String>{...(existingActivity?.assignedLearners ?? const [])};
@@ -188,20 +190,55 @@ Future<void> showCreateActivitySheet({
                 title: const Text('Whole class assigned'),
                 onChanged: (value) => setSheetState(() => wholeClass = value),
               ),
-              if (!wholeClass)
-                Wrap(
-                  spacing: 8,
-                  children: learnerNames.map((name) {
-                    final selected = selectedLearners.contains(name);
-                    return FilterChip(
-                      label: Text(name),
-                      selected: selected,
-                      onSelected: (value) => setSheetState(
-                        () => value ? selectedLearners.add(name) : selectedLearners.remove(name),
-                      ),
-                    );
-                  }).toList(),
+              if (!wholeClass) ...[
+                const SizedBox(height: 8),
+                TextField(
+                  controller: studentSearchController,
+                  decoration: const InputDecoration(
+                    hintText: 'Search student name...',
+                    prefixIcon: Icon(PhosphorIconsRegular.magnifyingGlass),
+                  ),
+                  onChanged: (_) => setSheetState(() {}),
                 ),
+                const SizedBox(height: 4),
+                Container(
+                  height: 220,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.borderLight),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Builder(builder: (_) {
+                    final query = studentSearchController.text.trim().toLowerCase();
+                    final filtered = query.isEmpty
+                        ? learnerNames
+                        : learnerNames.where((n) => n.toLowerCase().contains(query)).toList();
+                    if (filtered.isEmpty) {
+                      return const Center(child: Text('No students found', style: TextStyle(color: Colors.grey)));
+                    }
+                    return ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (_, i) {
+                        final name = filtered[i];
+                        final isSelected = selectedLearners.contains(name);
+                        return CheckboxListTile(
+                          dense: true,
+                          value: isSelected,
+                          title: Text(name, style: const TextStyle(fontSize: 14)),
+                          controlAffinity: ListTileControlAffinity.leading,
+                          onChanged: (v) => setSheetState(
+                            () => v! ? selectedLearners.add(name) : selectedLearners.remove(name),
+                          ),
+                        );
+                      },
+                    );
+                  }),
+                ),
+                if (selectedLearners.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text('${selectedLearners.length} student(s) selected',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                ],
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,

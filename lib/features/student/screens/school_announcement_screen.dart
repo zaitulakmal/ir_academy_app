@@ -66,7 +66,9 @@ class StudentSchoolAnnouncementScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: kIsWeb && post.attachmentBytes != null
             ? Image.memory(post.attachmentBytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
-            : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
+            : post.attachmentPath != null && post.attachmentPath!.startsWith('http')
+                ? Image.network(post.attachmentPath!, height: 180, width: double.infinity, fit: BoxFit.cover)
+                : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
       );
     }
     final icon =

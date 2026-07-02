@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../../core/constants/subjects.dart';
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/activity.dart';
 import '../../../core/models/apr_entry.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/activity_card.dart';
 import '../../../shared/widgets/apr_entry_card.dart';
@@ -92,6 +96,8 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                               _submissions.removeWhere((s) => s.activityId == existing.activityId);
                             }
                           });
+                          if (existing.id != null) FirebaseService.deleteAprEntry(existing.id!);
+                          if (existing.activityId != null) FirebaseService.deleteActivity(existing.activityId!);
                           Navigator.of(context).pop();
                         },
                       )
@@ -212,7 +218,17 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                   ],
                 ],
                 const SizedBox(height: 8),
-                TextField(controller: subjectController, decoration: const InputDecoration(labelText: 'Subject')),
+                DropdownButtonFormField<String>(
+                  initialValue: kSubjects.contains(subjectController.text) ? subjectController.text : null,
+                  decoration: const InputDecoration(labelText: 'Subject'),
+                  items: [
+                    // Keep a non-standard subject from older entries selectable
+                    if (subjectController.text.isNotEmpty && !kSubjects.contains(subjectController.text))
+                      DropdownMenuItem(value: subjectController.text, child: Text(subjectController.text)),
+                    ...kSubjects.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                  ],
+                  onChanged: (v) => setSheetState(() => subjectController.text = v ?? ''),
+                ),
                 const SizedBox(height: 8),
                 TextField(controller: topicController, decoration: const InputDecoration(labelText: 'Topic Covered')),
                 const SizedBox(height: 8),
@@ -281,6 +297,12 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                       final homeworkText =
                           homeworkController.text.trim().isEmpty ? 'No homework assigned' : homeworkController.text.trim();
                       final canLink = submittable && homeworkController.text.trim().isNotEmpty;
+
+                      final entriesToSave = <AprEntry>[];
+                      Activity? activityToSave;
+                      final subsToSave = <Submission>[];
+                      String? activityIdToDelete;
+
                       setState(() {
                         if (existing == null) {
                           String? sharedActivityId;
@@ -296,25 +318,29 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                               createdAt: DateTime.now(),
                             );
                             _activities.insert(0, activity);
-                            _submissions.addAll(targets.map((name) => Submission(activityId: activity.id, learnerName: name)));
+                            activityToSave = activity;
+                            final newSubs = targets.map((name) => Submission(activityId: activity.id, learnerName: name)).toList();
+                            _submissions.addAll(newSubs);
+                            subsToSave.addAll(newSubs);
                             sharedActivityId = activity.id;
                           }
-                          for (final name in targets) {
-                            _entries.insert(
-                              0,
-                              AprEntry(
-                                learnerName: name,
-                                date: DateTime.now(),
-                                subject: subjectController.text.trim(),
-                                topicCovered: topicController.text.trim(),
-                                progress: progress,
-                                homeworkAssigned: homeworkText,
-                                homeworkDone: false,
-                                observations: notesController.text.trim(),
-                                followUpAction: followUpController.text.trim(),
-                                activityId: sharedActivityId,
-                              ),
+                          final ts = DateTime.now().microsecondsSinceEpoch;
+                          for (var i = 0; i < targets.length; i++) {
+                            final entry = AprEntry(
+                              id: 'apr${ts}_$i',
+                              learnerName: targets[i],
+                              date: DateTime.now(),
+                              subject: subjectController.text.trim(),
+                              topicCovered: topicController.text.trim(),
+                              progress: progress,
+                              homeworkAssigned: homeworkText,
+                              homeworkDone: false,
+                              observations: notesController.text.trim(),
+                              followUpAction: followUpController.text.trim(),
+                              activityId: sharedActivityId,
                             );
+                            _entries.insert(0, entry);
+                            entriesToSave.add(entry);
                           }
                         } else {
                           var activityId = existing.activityId;
@@ -330,14 +356,19 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                               createdAt: DateTime.now(),
                             );
                             _activities.insert(0, activity);
-                            _submissions.add(Submission(activityId: activity.id, learnerName: selectedLearner));
+                            activityToSave = activity;
+                            final sub = Submission(activityId: activity.id, learnerName: selectedLearner);
+                            _submissions.add(sub);
+                            subsToSave.add(sub);
                             activityId = activity.id;
                           } else if (!canLink && activityId != null) {
                             _activities.removeWhere((a) => a.id == activityId);
                             _submissions.removeWhere((s) => s.activityId == activityId);
+                            activityIdToDelete = activityId;
                             activityId = null;
                           }
                           final updatedEntry = AprEntry(
+                            id: existing.id ?? 'apr${DateTime.now().microsecondsSinceEpoch}',
                             learnerName: selectedLearner,
                             date: existing.date,
                             subject: subjectController.text.trim(),
@@ -350,8 +381,15 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
                             activityId: activityId,
                           );
                           _entries[_entries.indexOf(existing)] = updatedEntry;
+                          entriesToSave.add(updatedEntry);
                         }
                       });
+
+                      if (activityToSave != null) unawaited(FirebaseService.saveActivity(activityToSave!));
+                      for (final s in subsToSave) { unawaited(FirebaseService.upsertSubmission(s)); }
+                      for (final e in entriesToSave) { FirebaseService.saveAprEntry(e); }
+                      if (activityIdToDelete != null) FirebaseService.deleteActivity(activityIdToDelete!);
+
                       Navigator.of(context).pop();
                     },
                     child: Text(existing != null ? 'Update Entry' : 'Save Entry'),
@@ -369,14 +407,27 @@ class _TeacherAprScreenState extends State<TeacherAprScreen> with SingleTickerPr
     showCreateActivitySheet(
       context: context,
       learnerNames: MockData.learners.map((l) => l.name).toList(),
-      onCreate: (activity) {
+      onCreate: (activity) async {
+        final targets = activity.wholeClass
+            ? MockData.learners.map((l) => l.name).toList()
+            : activity.assignedLearners;
+        final newSubs = targets.map((name) => Submission(activityId: activity.id, learnerName: name)).toList();
         setState(() {
           _activities.insert(0, activity);
-          final targets = activity.wholeClass
-              ? MockData.learners.map((l) => l.name)
-              : activity.assignedLearners;
-          _submissions.addAll(targets.map((name) => Submission(activityId: activity.id, learnerName: name)));
+          _submissions.addAll(newSubs);
         });
+        try {
+          await FirebaseService.saveActivity(activity);
+          for (final s in newSubs) {
+            await FirebaseService.upsertSubmission(s);
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to save activity: $e'), backgroundColor: Colors.red),
+            );
+          }
+        }
       },
     );
   }

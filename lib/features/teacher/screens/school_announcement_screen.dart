@@ -6,6 +6,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/chat_models.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import 'announcement_composer_screen.dart';
 
@@ -24,15 +25,23 @@ class _SchoolAnnouncementScreenState extends State<SchoolAnnouncementScreen> {
       MaterialPageRoute(
         builder: (_) => AnnouncementComposerScreen(
           existingPost: post,
-          onPost: (saved) => setState(() {
-            final index = post != null ? _posts.indexOf(post) : -1;
-            if (index == -1) {
-              _posts.insert(0, saved);
-            } else {
-              _posts[index] = saved;
-            }
-          }),
-          onDelete: post != null ? () => setState(() => _posts.remove(post)) : null,
+          onPost: (saved) {
+            setState(() {
+              final index = post != null ? _posts.indexWhere((p) => p.id == post.id) : -1;
+              if (index == -1) {
+                _posts.insert(0, saved);
+              } else {
+                _posts[index] = saved;
+              }
+            });
+            FirebaseService.saveAnnouncement(saved);
+          },
+          onDelete: post != null
+              ? () {
+                  setState(() => _posts.removeWhere((p) => p.id == post.id));
+                  if (post.id != null) FirebaseService.deleteAnnouncement(post.id!);
+                }
+              : null,
         ),
       ),
     );
@@ -73,9 +82,14 @@ class _SchoolAnnouncementScreenState extends State<SchoolAnnouncementScreen> {
                       Text(post.timeLabel, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                       PopupMenuButton<String>(
                         icon: const Icon(PhosphorIconsBold.dotsThreeVertical, size: 18, color: AppColors.textSecondary),
-                        onSelected: (value) => value == 'edit'
-                            ? _openComposer(post: post)
-                            : setState(() => _posts.remove(post)),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _openComposer(post: post);
+                          } else {
+                            setState(() => _posts.remove(post));
+                            if (post.id != null) FirebaseService.deleteAnnouncement(post.id!);
+                          }
+                        },
                         itemBuilder: (context) => const [
                           PopupMenuItem(value: 'edit', child: Text('Edit')),
                           PopupMenuItem(value: 'delete', child: Text('Delete')),
@@ -104,7 +118,9 @@ class _SchoolAnnouncementScreenState extends State<SchoolAnnouncementScreen> {
         borderRadius: BorderRadius.circular(12),
         child: kIsWeb && post.attachmentBytes != null
             ? Image.memory(post.attachmentBytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
-            : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
+            : post.attachmentPath != null && post.attachmentPath!.startsWith('http')
+                ? Image.network(post.attachmentPath!, height: 180, width: double.infinity, fit: BoxFit.cover)
+                : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
       );
     }
     final icon =

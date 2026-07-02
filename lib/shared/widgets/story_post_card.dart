@@ -6,7 +6,9 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/models/story_post.dart';
+import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_colors.dart';
+import 'attachment_preview.dart';
 import 'expandable_text.dart';
 import 'story_post_detail_screen.dart';
 
@@ -35,6 +37,20 @@ class StoryPostCard extends StatefulWidget {
 }
 
 class _StoryPostCardState extends State<StoryPostCard> {
+  Widget _photoWidget(StoryPost post) {
+    if (post.attachmentBytes != null) {
+      return Image.memory(post.attachmentBytes!, width: double.infinity, fit: BoxFit.contain);
+    }
+    final url = post.attachmentUrl ?? post.attachmentPath;
+    if (url != null && url.startsWith('http')) {
+      return NetworkPhoto(url: url);
+    }
+    if (!kIsWeb && post.attachmentPath != null) {
+      return Image.file(File(post.attachmentPath!), width: double.infinity, fit: BoxFit.contain);
+    }
+    return const SizedBox.shrink();
+  }
+
   @override
   Widget build(BuildContext context) {
     final post = widget.post;
@@ -88,9 +104,7 @@ class _StoryPostCardState extends State<StoryPostCard> {
               const SizedBox(height: 10),
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: kIsWeb && post.attachmentBytes != null
-                    ? Image.memory(post.attachmentBytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
-                    : Image.file(File(post.attachmentPath!), height: 180, width: double.infinity, fit: BoxFit.cover),
+                child: _photoWidget(post),
               ),
             ] else if (post.attachmentType == StoryAttachmentType.video) ...[
               const SizedBox(height: 10),
@@ -148,10 +162,13 @@ class _StoryPostCardState extends State<StoryPostCard> {
             Row(
               children: [
                 InkWell(
-                  onTap: () => setState(() {
-                    post.likedByMe = !post.likedByMe;
-                    post.likeCount += post.likedByMe ? 1 : -1;
-                  }),
+                  onTap: () {
+                    setState(() {
+                      post.likedByMe = !post.likedByMe;
+                      post.likeCount += post.likedByMe ? 1 : -1;
+                    });
+                    FirebaseService.saveStoryPost(post);
+                  },
                   child: Row(
                     children: [
                       Icon(

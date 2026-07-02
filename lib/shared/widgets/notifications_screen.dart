@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/models/app_notification.dart';
+import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_colors.dart';
 
 (IconData, Color) _typeStyle(NotificationType type) {
@@ -79,6 +80,19 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    try {
+      await FirebaseService.loadNotifications();
+    } catch (_) {}
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final hasUnread = widget.notifications.any((n) => !n.read);
     return Scaffold(
@@ -87,11 +101,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         actions: [
           if (hasUnread)
             TextButton(
-              onPressed: () => setState(() {
-                for (final n in widget.notifications) {
-                  n.read = true;
-                }
-              }),
+              onPressed: () {
+                setState(() {
+                  for (final n in widget.notifications) {
+                    n.read = true;
+                  }
+                });
+                FirebaseService.markNotificationsRead(
+                  widget.notifications.map((n) => n.id).where((id) => id.isNotEmpty),
+                );
+              },
               child: const Text('Mark all read'),
             ),
         ],
@@ -108,7 +127,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 return Card(
                   color: notification.read ? null : AppColors.primary.withValues(alpha: 0.04),
                   child: ListTile(
-                    onTap: () => setState(() => notification.read = true),
+                    onTap: () {
+                      setState(() => notification.read = true);
+                      if (notification.id.isNotEmpty) {
+                        FirebaseService.markNotificationsRead([notification.id]);
+                      }
+                    },
                     leading: CircleAvatar(
                       backgroundColor: color.withValues(alpha: 0.15),
                       child: Icon(icon, color: color, size: 18),

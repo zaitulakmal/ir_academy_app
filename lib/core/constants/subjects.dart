@@ -1,0 +1,20 @@
+/// Master list of subjects teachers can pick from (APR entries, homework).
+const List<String> kSubjects = [
+  'Bahasa Melayu',
+  'English',
+  'Cambridge English',
+  'Mathematics',
+  'Additional Mathematics',
+  'Science',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Sejarah',
+  'Geografi',
+  'Pendidikan Islam',
+  'Pendidikan Moral',
+  'ICT / Computer Science',
+  'Accounting',
+  'Economics',
+  'Other',
+];

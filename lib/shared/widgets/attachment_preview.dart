@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/models/activity.dart';
@@ -26,13 +27,22 @@ class AttachmentPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (responseType == ResponseType.photo || responseType == ResponseType.drawing) {
+      final Widget image = kIsWeb && bytes != null
+          ? Image.memory(bytes!, width: double.infinity, fit: BoxFit.contain)
+          : path.startsWith('http')
+              ? NetworkPhoto(url: path)
+              : Image.file(File(path), width: double.infinity, fit: BoxFit.contain);
       return InkWell(
         onTap: () => openAttachment(path: path, bytes: bytes, name: name),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
-          child: kIsWeb && bytes != null
-              ? Image.memory(bytes!, height: 180, width: double.infinity, fit: BoxFit.cover)
-              : Image.file(File(path), height: 180, width: double.infinity, fit: BoxFit.cover),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 120, maxHeight: 360),
+            color: AppColors.borderLight,
+            alignment: Alignment.center,
+            child: image,
+          ),
         ),
       );
     }
@@ -79,6 +89,60 @@ class AttachmentPreview extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Image.network silently fails to paint on the CanvasKit web renderer for
+// some remote JPEGs even though the bytes fetch and decode fine — fetching
+// the bytes ourselves and handing them to Image.memory sidesteps it.
+class NetworkPhoto extends StatefulWidget {
+  final String url;
+
+  const NetworkPhoto({super.key, required this.url});
+
+  @override
+  State<NetworkPhoto> createState() => _NetworkPhotoState();
+}
+
+class _NetworkPhotoState extends State<NetworkPhoto> {
+  late Future<Uint8List> _future = _fetch();
+
+  Future<Uint8List> _fetch() async {
+    final response = await http.get(Uri.parse(widget.url));
+    if (response.statusCode != 200) {
+      throw Exception('HTTP ${response.statusCode}');
+    }
+    return response.bodyBytes;
+  }
+
+  @override
+  void didUpdateWidget(NetworkPhoto oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.url != widget.url) {
+      setState(() => _future = _fetch());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.memory(snapshot.data!, width: double.infinity, fit: BoxFit.contain);
+        }
+        if (snapshot.hasError) {
+          return const SizedBox(
+            height: 180,
+            child: Center(child: Icon(PhosphorIconsRegular.imageBroken, size: 32, color: AppColors.textSecondary)),
+          );
+        }
+        return const SizedBox(
+          height: 180,
+          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      },
     );
   }
 }

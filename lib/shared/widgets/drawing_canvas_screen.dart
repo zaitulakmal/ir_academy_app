@@ -124,7 +124,7 @@ class _DrawingCanvasScreenState extends State<DrawingCanvasScreen> {
                 children: [
                   if (widget.backgroundImageBytes != null)
                     Image.memory(widget.backgroundImageBytes!, fit: BoxFit.contain)
-                  else if (widget.backgroundImagePath != null)
+                  else if (widget.backgroundImagePath != null && !kIsWeb)
                     Image.file(File(widget.backgroundImagePath!), fit: BoxFit.contain),
                   GestureDetector(
                     onPanStart: (details) =>

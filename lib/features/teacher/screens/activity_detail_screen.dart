@@ -96,7 +96,7 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
                   if (activity.attachmentPath != null) ...[
                     const SizedBox(height: 12),
                     AttachmentPreview(
-                      responseType: ResponseType.worksheet,
+                      responseType: _responseTypeFromFile(activity.attachmentName ?? activity.attachmentPath!),
                       path: activity.attachmentPath!,
                       name: activity.attachmentName ?? 'Attachment',
                       bytes: activity.attachmentBytes,
@@ -150,4 +150,11 @@ class _ActivityDetailScreenState extends State<ActivityDetailScreen> {
       ),
     );
   }
+}
+
+ResponseType _responseTypeFromFile(String nameOrPath) {
+  final ext = nameOrPath.split('.').last.split('?').first.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) return ResponseType.photo;
+  if (['mp4', 'mov', 'avi', 'mkv'].contains(ext)) return ResponseType.video;
+  return ResponseType.worksheet;
 }
