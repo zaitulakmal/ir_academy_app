@@ -46,11 +46,15 @@ class _AppLoaderState extends State<_AppLoader> {
       await FirebaseService.init();
       await SupabaseService.init();
       await FirebaseService.loadUsers();
-      await FirebaseService.requestNotificationPermission();
     } catch (e) {
       if (mounted) setState(() => _loadError = e.toString());
       return;
     }
+    // Non-critical — push notifications aren't supported on every browser
+    // (e.g. iOS Safari). Never let this block login.
+    try {
+      await FirebaseService.requestNotificationPermission();
+    } catch (_) {}
     if (mounted) setState(() => _ready = true);
   }
 
