@@ -179,7 +179,14 @@ class FirebaseService {
   // ── notifications permission ───────────────────────────────────────────────
 
   static Future<void> requestNotificationPermission() async {
-    await _fcm.requestPermission(alert: true, badge: true, sound: true);
+    try {
+      // FCM web is unsupported on some browsers (e.g. iOS Safari) and can throw
+      // when accessed — bail out quietly rather than blocking app startup.
+      if (!await FirebaseMessaging.instance.isSupported()) return;
+      await _fcm.requestPermission(alert: true, badge: true, sound: true);
+    } catch (_) {
+      // Ignore — notifications are best-effort.
+    }
   }
 
   // ── announcements ──────────────────────────────────────────────────────────
