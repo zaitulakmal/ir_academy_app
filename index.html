@@ -31,6 +31,37 @@
 
   <title>IR Academy</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Testing phase: keep the app always-fresh. Flutter's service worker caches
+    the build aggressively (especially sticky on iOS Safari), which can serve a
+    stale/broken version even after a redeploy. We disable SW registration and
+    clear any previously-installed SW + caches so testers always get the latest.
+  -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      // Neutralise any registration attempt (e.g. from flutter_bootstrap.js).
+      navigator.serviceWorker.register = function () {
+        return Promise.reject(new Error('Service worker disabled during testing'));
+      };
+      // Remove stale service workers + caches, then reload once if this page
+      // is still being controlled by an old (cached) service worker.
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        var wasControlled = !!navigator.serviceWorker.controller;
+        return Promise.all(regs.map(function (r) { return r.unregister(); }))
+          .then(function () {
+            if (window.caches && caches.keys) {
+              return caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              });
+            }
+          })
+          .then(function () {
+            if (wasControlled) window.location.reload();
+          });
+      }).catch(function () {});
+    }
+  </script>
 </head>
 <body>
   <!--
