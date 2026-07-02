@@ -18,10 +18,10 @@ class HomeworkScreen extends StatefulWidget {
 }
 
 class _HomeworkScreenState extends State<HomeworkScreen> {
-  late final List<Activity> _myActivities = MockData.activities
+  List<Activity> get _myActivities => MockData.activities
       .where((a) => a.wholeClass || a.assignedLearners.contains(MockData.studentName))
       .toList();
-  late final List<Submission> _submissions = MockData.submissions;
+  List<Submission> get _submissions => MockData.submissions;
 
   Submission _submissionFor(String activityId) => _submissions.firstWhere(
         (s) => s.activityId == activityId && s.learnerName == MockData.studentName,

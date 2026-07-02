@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../core/models/chat_models.dart';
+import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_colors.dart';
 import 'group_info_screen.dart';
 
@@ -17,24 +18,55 @@ class GroupChatScreen extends StatefulWidget {
 
 class _GroupChatScreenState extends State<GroupChatScreen> {
   final _messageController = TextEditingController();
+  List<GroupMessage> _messages = [];
+  bool _loading = true;
 
-  void _send() {
+  @override
+  void initState() {
+    super.initState();
+    _loadMessages();
+  }
+
+  Future<void> _loadMessages() async {
+    final msgs = await FirebaseService.loadGroupMessages(widget.group.id);
+    if (!mounted) return;
+    setState(() {
+      _messages = msgs;
+      _loading = false;
+    });
+  }
+
+  Future<void> _send() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    setState(() {
-      widget.group.messages.add(GroupMessage(
-        senderName: widget.currentUserName,
-        text: text,
-        sentAt: DateTime.now(),
-      ));
-      _messageController.clear();
-    });
+    _messageController.clear();
+    final msg = GroupMessage(
+      senderName: widget.currentUserName,
+      text: text,
+      sentAt: DateTime.now(),
+    );
+    setState(() => _messages.insert(0, msg));
+    try {
+      await FirebaseService.sendGroupMessage(widget.group.id, widget.currentUserName, text);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to send message: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   String _formatTime(DateTime date) {
     final h = date.hour % 12 == 0 ? 12 : date.hour % 12;
     final period = date.hour >= 12 ? 'PM' : 'AM';
     return '$h:${date.minute.toString().padLeft(2, '0')} $period';
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -64,50 +96,57 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: widget.group.messages.isEmpty
-                ? const Center(child: Text('No messages yet.', style: TextStyle(color: AppColors.textSecondary)))
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: widget.group.messages.length,
-                    itemBuilder: (context, index) {
-                      final message = widget.group.messages[index];
-                      final isMine = message.senderName == widget.currentUserName;
-                      return Align(
-                        alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          constraints: const BoxConstraints(maxWidth: 280),
-                          decoration: BoxDecoration(
-                            color: isMine ? AppColors.primary : AppColors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (!isMine)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 3),
-                                  child: Text(
-                                    message.senderName,
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent),
-                                  ),
-                                ),
-                              Text(message.text, style: TextStyle(color: isMine ? Colors.white : AppColors.textPrimary)),
-                              const SizedBox(height: 4),
-                              Text(
-                                _formatTime(message.sentAt),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isMine ? Colors.white70 : AppColors.textSecondary,
-                                ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                    ? const Center(
+                        child: Text('No messages yet.', style: TextStyle(color: AppColors.textSecondary)),
+                      )
+                    : ListView.builder(
+                        reverse: true,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          final message = _messages[index];
+                          final isMine = message.senderName == widget.currentUserName;
+                          return Align(
+                            alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              constraints: const BoxConstraints(maxWidth: 280),
+                              decoration: BoxDecoration(
+                                color: isMine ? AppColors.primary : AppColors.white,
+                                borderRadius: BorderRadius.circular(16),
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (!isMine)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 3),
+                                      child: Text(
+                                        message.senderName,
+                                        style: const TextStyle(
+                                            fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent),
+                                      ),
+                                    ),
+                                  Text(message.text,
+                                      style: TextStyle(color: isMine ? Colors.white : AppColors.textPrimary)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatTime(message.sentAt),
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: isMine ? Colors.white70 : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
           ),
           if (stillMember)
             Container(

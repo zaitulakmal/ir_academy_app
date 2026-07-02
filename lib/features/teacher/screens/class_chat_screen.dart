@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/mock/mock_data.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../shared/widgets/chat_list_screen.dart';
 import 'create_group_screen.dart';
 
@@ -16,7 +17,10 @@ class _TeacherClassChatScreenState extends State<TeacherClassChatScreen> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CreateGroupScreen(
-          onCreate: (group) => setState(() => MockData.chatGroups.add(group)),
+          onCreate: (group) {
+            setState(() => MockData.chatGroups.add(group));
+            FirebaseService.saveGroup(group);
+          },
         ),
       ),
     );

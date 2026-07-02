@@ -1,7 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/models/activity.dart';
+import '../../../core/services/firebase_service.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/attachment_picker.dart';
 import '../../../shared/widgets/attachment_preview.dart';
@@ -29,6 +35,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
   late final List<PickedAttachment> _attachments = widget.submission.attachments
       .map((a) => PickedAttachment(path: a.path, name: a.name, bytes: a.bytes))
       .toList();
+  bool _isSubmitting = false;
 
   Future<void> _addAttachment() async {
     List<PickedAttachment> picked = [];
@@ -51,19 +58,43 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
 
   void _removeAttachment(int index) => setState(() => _attachments.removeAt(index));
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+
     final activity = widget.activity;
     final submission = widget.submission;
     submission.submitted = true;
     submission.submittedAt = DateTime.now();
+
     if (activity.responseType == ResponseType.text) {
       submission.textResponse = _textController.text.trim();
     } else {
-      submission.attachments =
-          _attachments.map((a) => SubmissionAttachment(path: a.path, name: a.name, bytes: a.bytes)).toList();
+      final uploaded = <SubmissionAttachment>[];
+      for (final a in _attachments) {
+        Uint8List? bytes = a.bytes;
+        if (bytes == null && !kIsWeb && a.path.isNotEmpty) {
+          try {
+            bytes = await File(a.path).readAsBytes();
+          } catch (_) {}
+        }
+        String path = a.path;
+        if (bytes != null) {
+          final ts = DateTime.now().microsecondsSinceEpoch;
+          final url = await SupabaseService.uploadAttachment(
+            storagePath: 'submissions/${submission.activityId}_${submission.learnerName}_${ts}_${a.name}',
+            bytes: bytes,
+          );
+          if (url != null) path = url;
+        }
+        uploaded.add(SubmissionAttachment(path: path, name: a.name, bytes: a.bytes));
+      }
+      submission.attachments = uploaded;
     }
+
     widget.onSubmitted(submission);
-    Navigator.of(context).pop();
+    FirebaseService.upsertSubmission(submission);
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -99,7 +130,7 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
                   if (activity.attachmentPath != null) ...[
                     const SizedBox(height: 12),
                     AttachmentPreview(
-                      responseType: ResponseType.worksheet,
+                      responseType: _responseTypeFromFile(activity.attachmentName ?? activity.attachmentPath!),
                       path: activity.attachmentPath!,
                       name: activity.attachmentName ?? 'Attachment',
                       bytes: activity.attachmentBytes,
@@ -216,14 +247,23 @@ class _StudentActivityDetailScreenState extends State<StudentActivityDetailScree
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: canSubmit ? _submit : null,
-                child: const Text('Submit'),
+                onPressed: canSubmit && !_isSubmitting ? _submit : null,
+                child: _isSubmitting
+                    ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Submit'),
               ),
             ),
         ],
       ),
     );
   }
+}
+
+ResponseType _responseTypeFromFile(String nameOrPath) {
+  final ext = nameOrPath.split('.').last.split('?').first.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(ext)) return ResponseType.photo;
+  if (['mp4', 'mov', 'avi', 'mkv'].contains(ext)) return ResponseType.video;
+  return ResponseType.worksheet;
 }
 
 String _attachLabel(ResponseType type) {

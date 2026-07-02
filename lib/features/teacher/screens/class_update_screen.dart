@@ -3,6 +3,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/story_post.dart';
+import '../../../core/services/firebase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/story_post_card.dart';
 import 'class_update_composer_screen.dart';
@@ -22,15 +23,24 @@ class _TeacherClassUpdateScreenState extends State<TeacherClassUpdateScreen> {
       MaterialPageRoute(
         builder: (_) => ClassUpdateComposerScreen(
           existingPost: post,
-          onSave: (saved) => setState(() {
-            final index = post != null ? _posts.indexWhere((p) => p.id == post.id) : -1;
-            if (index == -1) {
-              _posts.insert(0, saved);
-            } else {
-              _posts[index] = saved;
-            }
-          }),
-          onDelete: post != null ? () => setState(() => _posts.removeWhere((p) => p.id == post.id)) : null,
+          onSave: (saved) {
+            final isNew = post == null;
+            setState(() {
+              final index = post != null ? _posts.indexWhere((p) => p.id == post.id) : -1;
+              if (index == -1) {
+                _posts.insert(0, saved);
+              } else {
+                _posts[index] = saved;
+              }
+            });
+            isNew ? FirebaseService.saveNewStoryPost(saved) : FirebaseService.saveStoryPost(saved);
+          },
+          onDelete: post != null
+              ? () {
+                  setState(() => _posts.removeWhere((p) => p.id == post.id));
+                  FirebaseService.deleteStoryPost(post.id);
+                }
+              : null,
         ),
       ),
     );
@@ -55,7 +65,11 @@ class _TeacherClassUpdateScreenState extends State<TeacherClassUpdateScreen> {
                 post: _posts[index],
                 colorIndex: index,
                 onEdit: () => _openComposer(post: _posts[index]),
-                onDelete: () => setState(() => _posts.removeAt(index)),
+                onDelete: () {
+                  final post = _posts[index];
+                  setState(() => _posts.removeAt(index));
+                  FirebaseService.deleteStoryPost(post.id);
+                },
               ),
             ),
     );

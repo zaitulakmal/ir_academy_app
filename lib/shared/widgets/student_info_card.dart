@@ -33,6 +33,10 @@ class _StudentInfoCardState extends State<StudentInfoCard> {
 
   @override
   Widget build(BuildContext context) {
+    final hasCredentials = MockData.portalUsername.isNotEmpty || MockData.portalPassword.isNotEmpty;
+    final hasClassGroup = MockData.classGroupLink.isNotEmpty;
+    final hasGoogleMeet = MockData.googleMeetLink.isNotEmpty;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -48,7 +52,7 @@ class _StudentInfoCardState extends State<StudentInfoCard> {
                       radius: 24,
                       backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                       child: Text(
-                        MockData.studentName[0],
+                        MockData.studentName.isNotEmpty ? MockData.studentName[0] : '?',
                         style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800, fontSize: 18),
                       ),
                     ),
@@ -58,70 +62,85 @@ class _StudentInfoCardState extends State<StudentInfoCard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(MockData.studentName, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                          Text('ID: ${MockData.studentId}',
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                          if (MockData.currentUserId.isNotEmpty)
+                            Text('ID: ${MockData.currentUserId}',
+                                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1, color: AppColors.borderLight),
-                ),
-                _InfoRow(label: 'Syllabus', value: MockData.studentSyllabus),
-                const SizedBox(height: 8),
-                _InfoRow(label: 'Grade', value: MockData.studentForm),
+                if (MockData.studentSyllabus.isNotEmpty || MockData.currentUserForm.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Divider(height: 1, color: AppColors.borderLight),
+                  ),
+                  if (MockData.studentSyllabus.isNotEmpty) ...[
+                    _InfoRow(label: 'Syllabus', value: MockData.studentSyllabus),
+                    const SizedBox(height: 8),
+                  ],
+                  if (MockData.currentUserForm.isNotEmpty)
+                    _InfoRow(label: 'Class', value: MockData.studentForm),
+                ],
               ],
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Learning Portal Access', style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 10),
-                _CredentialRow(
-                  label: 'Username',
-                  value: MockData.portalUsername,
-                  onCopy: () => _copy(MockData.portalUsername, 'Username'),
-                ),
-                const SizedBox(height: 8),
-                _CredentialRow(
-                  label: 'Password',
-                  value: MockData.portalPassword,
-                  obscure: !_showPassword,
-                  onToggleObscure: () => setState(() => _showPassword = !_showPassword),
-                  onCopy: () => _copy(MockData.portalPassword, 'Password'),
-                ),
-              ],
+        if (hasCredentials) ...[
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Learning Portal Access', style: TextStyle(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 10),
+                  if (MockData.portalUsername.isNotEmpty)
+                    _CredentialRow(
+                      label: 'Username',
+                      value: MockData.portalUsername,
+                      onCopy: () => _copy(MockData.portalUsername, 'Username'),
+                    ),
+                  if (MockData.portalPassword.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _CredentialRow(
+                      label: 'Password',
+                      value: MockData.portalPassword,
+                      obscure: !_showPassword,
+                      onToggleObscure: () => setState(() => _showPassword = !_showPassword),
+                      onCopy: () => _copy(MockData.portalPassword, 'Password'),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _openLink(MockData.classGroupLink),
-                icon: const Icon(PhosphorIconsRegular.chatsCircle, size: 18),
-                label: const Text('Class Group'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _openLink(MockData.googleMeetLink),
-                icon: const Icon(PhosphorIconsRegular.videoCamera, size: 18),
-                label: const Text('Google Meet'),
-              ),
-            ),
-          ],
-        ),
+        ],
+        if (hasClassGroup || hasGoogleMeet) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (hasClassGroup)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openLink(MockData.classGroupLink),
+                    icon: const Icon(PhosphorIconsRegular.chatsCircle, size: 18),
+                    label: const Text('Class Group'),
+                  ),
+                ),
+              if (hasClassGroup && hasGoogleMeet) const SizedBox(width: 10),
+              if (hasGoogleMeet)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _openLink(MockData.googleMeetLink),
+                    icon: const Icon(PhosphorIconsRegular.videoCamera, size: 18),
+                    label: const Text('Google Meet'),
+                  ),
+                ),
+            ],
+          ),
+        ],
       ],
     );
   }

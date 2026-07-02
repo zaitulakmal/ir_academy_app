@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "703871869110",
+    "project_id": "ir-academy-53285",
+    "storage_bucket": "ir-academy-53285.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703871869110:android:b5aaacb2227d6400044617",
+        "android_client_info": {
+          "package_name": "com.iracademy.ir_academy_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD6eCBiSlQuoj0uIegOMGNnFcacr_v-T9E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

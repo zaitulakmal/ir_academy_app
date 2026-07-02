@@ -1,6 +1,7 @@
 enum NotificationType { homework, grade, announcement, calendar, chat }
 
 class AppNotification {
+  final String id;
   final String title;
   final String body;
   final DateTime time;
@@ -8,6 +9,7 @@ class AppNotification {
   bool read;
 
   AppNotification({
+    this.id = '',
     required this.title,
     required this.body,
     required this.time,

@@ -8,9 +8,20 @@ class MoreMenuItem {
   final IconData icon;
   final Widget? screen;
   final String? url;
+  final VoidCallback? onTap;
+  final Color? color;
 
-  const MoreMenuItem({required this.label, required this.icon, this.screen, this.url})
-      : assert(screen != null || url != null, 'Provide either screen or url');
+  const MoreMenuItem({
+    required this.label,
+    required this.icon,
+    this.screen,
+    this.url,
+    this.onTap,
+    this.color,
+  }) : assert(
+          screen != null || url != null || onTap != null,
+          'Provide one of screen, url, or onTap',
+        );
 }
 
 class MoreMenuScreen extends StatelessWidget {
@@ -36,7 +47,9 @@ class MoreMenuScreen extends StatelessWidget {
           return InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () async {
-              if (item.url != null) {
+              if (item.onTap != null) {
+                item.onTap!();
+              } else if (item.url != null) {
                 final uri = Uri.parse(item.url!);
                 if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
               } else {
@@ -52,16 +65,20 @@ class MoreMenuScreen extends StatelessWidget {
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: (item.color ?? AppColors.primary).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(item.icon, color: AppColors.primary, size: 28),
+                  child: Icon(item.icon, color: item.color ?? AppColors.primary, size: 28),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   item.label,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: item.color,
+                  ),
                 ),
               ],
             ),

@@ -16,7 +16,9 @@ class VideoPreviewScreen extends StatefulWidget {
 
 class _VideoPreviewScreenState extends State<VideoPreviewScreen> {
   late final VideoPlayerController _controller =
-      (kIsWeb ? VideoPlayerController.networkUrl(Uri.parse(widget.path)) : VideoPlayerController.file(File(widget.path)))
+      (kIsWeb || widget.path.startsWith('http')
+          ? VideoPlayerController.networkUrl(Uri.parse(widget.path))
+          : VideoPlayerController.file(File(widget.path)))
         ..initialize().then((_) {
           setState(() {});
           _controller.play();

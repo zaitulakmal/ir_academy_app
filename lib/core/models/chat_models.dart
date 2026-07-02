@@ -6,6 +6,8 @@ class ChatThread {
   final String lastMessage;
   final String timeLabel;
   final int unreadCount;
+  // The other person's actual name — used to compute a shared thread_id
+  final String contactName;
 
   const ChatThread({
     required this.title,
@@ -13,7 +15,15 @@ class ChatThread {
     required this.lastMessage,
     required this.timeLabel,
     this.unreadCount = 0,
+    required this.contactName,
   });
+
+  // Deterministic thread ID for any two participants — scales to any number of users
+  String threadIdWith(String myName) {
+    String sanitize(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_');
+    final parts = [sanitize(myName), sanitize(contactName)]..sort();
+    return 'dm_${parts[0]}__${parts[1]}';
+  }
 }
 
 enum ChatRole { admin, teacher, student, parent }
@@ -63,6 +73,7 @@ class ChatGroup {
 enum AnnouncementAttachmentType { none, photo, video, file }
 
 class AnnouncementPost {
+  final String? id;
   final String body;
   final String author;
   final String timeLabel;
@@ -72,6 +83,7 @@ class AnnouncementPost {
   final Uint8List? attachmentBytes;
 
   const AnnouncementPost({
+    this.id,
     required this.body,
     required this.author,
     required this.timeLabel,

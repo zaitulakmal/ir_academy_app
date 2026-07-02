@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:phosphor_flutter/phosphor_flutter.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/models/story_post.dart';
+import '../../../core/services/supabase_service.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/attachment_picker.dart';
 
@@ -33,10 +35,13 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
   late bool _wholeClass = widget.existingPost?.wholeClass ?? true;
   late final Set<String> _selectedLearners = {...(widget.existingPost?.assignedLearners ?? const [])};
   final _studentSearchController = TextEditingController();
+  bool _isPosting = false;
 
   bool get _isEditing => widget.existingPost != null;
   bool get _canPost =>
-      (_bodyController.text.trim().isNotEmpty || _attachment != null) && (_wholeClass || _selectedLearners.isNotEmpty);
+      (_bodyController.text.trim().isNotEmpty || _attachment != null) &&
+      (_wholeClass || _selectedLearners.isNotEmpty) &&
+      !_isPosting;
 
   Future<void> _openStudentPicker() async {
     await showDialog<void>(
@@ -141,8 +146,38 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
         _attachmentType = StoryAttachmentType.none;
       });
 
-  void _post() {
+  Future<void> _post() async {
     if (!_canPost) return;
+    setState(() => _isPosting = true);
+
+    String? attachmentUrl = widget.existingPost?.attachmentUrl;
+    String? attachmentPath;
+    if (_attachment != null &&
+        (_attachmentType == StoryAttachmentType.photo ||
+            _attachmentType == StoryAttachmentType.video ||
+            _attachmentType == StoryAttachmentType.file)) {
+      Uint8List? bytes = _attachment!.bytes;
+      if (bytes == null && !kIsWeb && _attachment!.path.isNotEmpty) {
+        try {
+          bytes = await File(_attachment!.path).readAsBytes();
+        } catch (_) {}
+      }
+      if (bytes != null) {
+        final ts = DateTime.now().microsecondsSinceEpoch;
+        final url = await SupabaseService.uploadAttachment(
+          storagePath: 'story_posts/${ts}_${_attachment!.name}',
+          bytes: bytes,
+        );
+        if (url != null) {
+          attachmentUrl = url;
+        } else {
+          attachmentPath = _attachment!.path;
+        }
+      } else {
+        attachmentPath = _attachment!.path;
+      }
+    }
+
     widget.onSave(StoryPost(
       id: widget.existingPost?.id ?? 'sp${DateTime.now().microsecondsSinceEpoch}',
       teacherName: MockData.teacherName,
@@ -150,10 +185,8 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
       date: widget.existingPost?.date ?? DateTime.now(),
       body: _bodyController.text.trim(),
       attachmentType: _attachmentType,
-      attachmentPath: _attachmentType == StoryAttachmentType.photo || _attachmentType == StoryAttachmentType.video
-          ? _attachment?.path
-          : null,
-      attachmentUrl: widget.existingPost?.attachmentUrl,
+      attachmentPath: attachmentPath,
+      attachmentUrl: attachmentUrl,
       attachmentName: _attachment?.name,
       attachmentSizeLabel: widget.existingPost?.attachmentSizeLabel,
       attachmentBytes: _attachment?.bytes,
@@ -163,7 +196,7 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
       likedByMe: widget.existingPost?.likedByMe ?? false,
       comments: widget.existingPost?.comments,
     ));
-    Navigator.of(context).pop();
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _delete() {
@@ -302,7 +335,9 @@ class _ClassUpdateComposerScreenState extends State<ClassUpdateComposerScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _canPost ? _post : null,
-              child: Text(_isEditing ? 'Update' : 'Post to Class'),
+              child: _isPosting
+                  ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text(_isEditing ? 'Update' : 'Post to Class'),
             ),
           ),
         ],

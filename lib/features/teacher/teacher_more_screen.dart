@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 
+import '../../shared/utils/logout.dart';
 import '../../shared/widgets/more_menu.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/class_chat_screen.dart';
@@ -13,12 +14,18 @@ class TeacherMoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MoreMenuScreen(items: [
-      MoreMenuItem(label: 'Class Update', icon: PhosphorIconsRegular.images, screen: TeacherClassUpdateScreen()),
-      MoreMenuItem(label: 'School Announcement', icon: PhosphorIconsRegular.megaphone, screen: SchoolAnnouncementScreen()),
-      MoreMenuItem(label: 'Calendar', icon: PhosphorIconsRegular.calendarBlank, screen: CalendarScreen()),
-      MoreMenuItem(label: 'Report Card', icon: PhosphorIconsRegular.chartBar, screen: TeacherReportCardScreen()),
-      MoreMenuItem(label: 'Class Chat', icon: PhosphorIconsRegular.chatCircleDots, screen: TeacherClassChatScreen()),
+    return MoreMenuScreen(items: [
+      const MoreMenuItem(label: 'Class Update', icon: PhosphorIconsRegular.images, screen: TeacherClassUpdateScreen()),
+      const MoreMenuItem(label: 'School Announcement', icon: PhosphorIconsRegular.megaphone, screen: SchoolAnnouncementScreen()),
+      const MoreMenuItem(label: 'Calendar', icon: PhosphorIconsRegular.calendarBlank, screen: CalendarScreen()),
+      const MoreMenuItem(label: 'Report Card', icon: PhosphorIconsRegular.chartBar, screen: TeacherReportCardScreen()),
+      const MoreMenuItem(label: 'Class Chat', icon: PhosphorIconsRegular.chatCircleDots, screen: TeacherClassChatScreen()),
+      MoreMenuItem(
+        label: 'Log Out',
+        icon: PhosphorIconsRegular.signOut,
+        color: Colors.red,
+        onTap: () => logout(context),
+      ),
     ]);
   }
 }
