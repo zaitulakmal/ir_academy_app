@@ -46,7 +46,8 @@ class _AppLoaderState extends State<_AppLoader> {
       await FirebaseService.init();
       await SupabaseService.init();
       await FirebaseService.loadUsers();
-    } catch (e) {
+    } catch (e, st) {
+      debugPrint('LOAD-ERROR: $e\n$st');
       if (mounted) setState(() => _loadError = e.toString());
       return;
     }
