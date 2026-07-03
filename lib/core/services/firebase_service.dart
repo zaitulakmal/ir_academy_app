@@ -26,8 +26,14 @@ class FirebaseService {
   static List<UserDto> _users = [];
 
   static Future<void> init() async {
-    if (Firebase.apps.isEmpty) {
+    // Never probe Firebase.apps before initializeApp: on WebKit (all iPhone
+    // browsers) it throws "Null check operator used on a null value" because
+    // the JS SDK global doesn't exist yet. Init directly and ignore the
+    // duplicate-app error thrown on retry/hot-restart instead.
+    try {
       await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+    } catch (e) {
+      if (!e.toString().toLowerCase().contains('duplicate')) rethrow;
     }
   }
 
