@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // TEMPORARY: open access until the app uses Firebase Auth.
+    // All client requests are denied after this date — replace with
+    // auth-based rules before then.
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2027, 1, 1);
+    }
+  }
+}
